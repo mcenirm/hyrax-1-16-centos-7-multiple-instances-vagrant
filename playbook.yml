@@ -70,6 +70,12 @@
         - package:
             state: installed
             name: "{{ package_list }}"
+        - copy:
+            src: "bes@.service"
+            dest: "/etc/systemd/system/"
+            owner: root
+            group: root
+            mode: 0644
         - loop: "{{ instances }}"
           copy:
             dest: "/etc/sysconfig/tomcat@{{ item.shortname }}"
@@ -105,9 +111,6 @@
             name: "tomcat@{{ item.shortname }}"
             enabled: yes
             state: started
-        - name: "START"
-          debug:
-            msg: starting...
         - loop: "{{ instances }}"
           unarchive:
             remote_src: yes
@@ -121,3 +124,6 @@
             owner: tomcat
             group: tomcat
             mode: 0644
+        - name: "START"
+          debug:
+            msg: starting...
