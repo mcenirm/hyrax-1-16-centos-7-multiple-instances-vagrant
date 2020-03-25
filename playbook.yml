@@ -30,13 +30,6 @@
     local: "/vagrant"
     downloads: "{{ local }}/downloads"
 
-    instances:
-      - shortname: demodev
-        tomcat:
-          shutdown_port: 8010
-          ajp_port: 8020
-          http_port: 8030
-
     tomcat_directory_list:
       - "."
       - "conf"
