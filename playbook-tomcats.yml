@@ -1,0 +1,116 @@
+---
+- hosts: default
+  vars:
+    java_version: "1.8.0"
+    package_list:
+      - "java-{{ java_version }}-openjdk-headless"
+      - tomcat
+
+    tomcat_directory_list:
+      - "."
+      - "conf"
+      - "content"
+      - "lib"
+      - "logs"
+      - "temp"
+      - "webapps"
+      - "work"
+
+    tomcat_conf_file_list:
+      - "catalina.policy"
+      - "catalina.properties"
+      - "context.xml"
+      - "log4j.properties"
+      - "logging.properties"
+      - "web.xml"
+
+  tasks:
+    - name: system configuration changes that might require a reboot
+      become: yes
+      block:
+        - name: Enable SELinux
+          selinux:
+            policy: targeted
+            state: enforcing
+          register: selinux_status
+        - when: selinux_status.reboot_required
+          fail:
+            msg: Change in SELinux requires a reboot
+
+    - name: system configuration
+      become: yes
+      block:
+        - name: Install packages for tomcat
+          package:
+            state: installed
+            name: "{{ package_list }}"
+
+    - name: tomcat instances
+      become: yes
+      block:
+        - name: allow tomcat to listen to ports
+          loop: "{{ instances }}"
+          seport:
+            ports:
+              - "{{ item.tomcat.shutdown_port }}"
+              - "{{ item.tomcat.ajp_port }}"
+              - "{{ item.tomcat.http_port }}"
+            proto: tcp
+            setype: http_port_t
+            state: present
+        - name: sysconfig parts directory
+          loop: "{{ instances }}"
+          file:
+            path: "/etc/sysconfig/tomcat@{{ item.shortname }}.d"
+            state: directory
+            owner: root
+            group: root
+            mode: 0755
+        - name: sysconfig bootstrap
+          loop: "{{ instances }}"
+          copy:
+            dest: "/etc/sysconfig/tomcat@{{ item.shortname }}"
+            content: |
+              TOMCAT_CONFD='/etc/sysconfig/tomcat@{{ item.shortname }}.d'
+            owner: root
+            group: root
+            mode: 0644
+        - name: sysconfig defaults
+          loop: "{{ instances }}"
+          copy:
+            dest: "/etc/sysconfig/tomcat@{{ item.shortname }}.d/00-defaults.conf"
+            content: |
+              JAVA_HOME="/usr/lib/jvm/jre-{{ java_version }}"
+              JAVA_OPTS="-server -Djava.awt.headless=true -Xmx1500M -Xms1500M -XX:+DisableAttachMechanism"
+              CATALINA_TMPDIR=/var/lib/tomcats/{{ item.shortname }}/temp
+        - name: catalina.base structure
+          loop: "{{ instances|product(tomcat_directory_list)|list }}"
+          file:
+            path: "/var/lib/tomcats/{{ item.0.shortname }}/{{ item.1 }}"
+            state: directory
+            owner: tomcat
+            group: tomcat
+            mode: 02775
+        - name: server.xml
+          loop: "{{ instances }}"
+          template:
+            dest: "/var/lib/tomcats/{{ item.shortname }}/conf/server.xml"
+            src: "server.xml.j2"
+            owner: tomcat
+            group: tomcat
+            mode: 0644
+        - name: other conf files
+          loop: "{{ instances|product(tomcat_conf_file_list)|list }}"
+          copy:
+            remote_src: yes
+            src: "/etc/tomcat/{{ item.1 }}"
+            dest: "/var/lib/tomcats/{{ item.0.shortname }}/conf/"
+            owner: tomcat
+            group: tomcat
+            mode: 0644
+        - name: enable and start tomcat instance
+          loop: "{{ instances }}"
+          service:
+            name: "tomcat@{{ item.shortname }}"
+            enabled: yes
+            state: started
