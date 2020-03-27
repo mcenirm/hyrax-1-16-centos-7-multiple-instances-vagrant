@@ -25,6 +25,11 @@
       - "web.xml"
 
   tasks:
+    - name: save instance details to vars file
+      copy:
+        dest: "{{ playbook_dir }}/instances_vars.yml"
+        content: "{{ dict(instances=instances)|to_nice_yaml(indent=2) }}"
+
     - name: system configuration changes that might require a reboot
       become: yes
       block:

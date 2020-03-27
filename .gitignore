@@ -1,3 +1,4 @@
 /.vagrant/
 *.retry
 /downloads/
+instances_vars.yml
