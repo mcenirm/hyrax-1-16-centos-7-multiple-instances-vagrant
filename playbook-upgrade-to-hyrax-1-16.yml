@@ -1,0 +1,22 @@
+---
+- hosts: default
+  vars:
+    hyrax_version: "1.16"
+    bes_version: "3.20.6"
+    libdap_version: "3.20.5"
+    olfs_version: "1.18.6"
+
+    opendap_rpm_distribution_directory: "centos-7.x"
+    opendap_rpm_distribution_string: "el7"
+    bes_rpm_release: "1"
+    libdap_rpm_release: "1"
+
+    bes_rpm_sha256: "987d6557dc94b7839bc89f78ed739e4a8bed497e0565e70f726fb1f97863a12b"
+    libdap_rpm_sha256: "0f3b19468d442d84a6810dddeed1ce5c407d7a65d2556007b5db18ed0ed91e95"
+    olfs_tgz_sha256: "b48235c4890235dba25940b1d433b6a732ab6f73fbd66b7886dc09c63b839a41"
+
+  vars_files:
+    - hyrax_vars.yml
+
+  tasks:
+    - include: hyrax_downloads.yml
