@@ -1,0 +1,15 @@
+---
+- name: downloads directory
+  file:
+    path: "{{ downloads }}"
+    state: directory
+
+- name: download hyrax files
+  loop:
+    - { url: "{{ bes_rpm_url }}", sha256: "{{ bes_rpm_sha256 }}" }
+    - { url: "{{ libdap_rpm_url }}", sha256: "{{ libdap_rpm_sha256 }}" }
+    - { url: "{{ olfs_tgz_url }}", sha256: "{{ olfs_tgz_sha256 }}" }
+  get_url:
+    url: "{{ item.url }}"
+    dest: "{{ downloads }}/"
+    checksum: "sha256:{{ item.sha256 }}"

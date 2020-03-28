@@ -1,0 +1,123 @@
+---
+- hosts: default
+  vars:
+    hyrax_version: "1.13.3"
+    bes_version: "3.17.4"
+    libdap_version: "3.18.3"
+    olfs_version: "1.16.1"
+
+    opendap_rpm_distribution_directory: "centos7.1"
+    opendap_rpm_distribution_string: "el7.centos"
+    bes_rpm_release: "1"
+    libdap_rpm_release: "1"
+
+    bes_rpm_sha256: "79c01dfa5ed29b2834ec88970ecf1bd2262c03d689de31172e2f6afc0168d702"
+    libdap_rpm_sha256: "b77e7c9e86e7f4ead194b3d6356f1b4b2019d3fd8dfd4be702d6f84953d705ab"
+    olfs_tgz_sha256: "9e17f21b4053b451ea9805c3835d733d83c1833b8f55beec598b7817075ff402"
+
+  vars_files:
+    - hyrax_vars.yml
+    - instances_vars.yml
+
+  tasks:
+    - become: no
+      include: hyrax_downloads.yml
+
+    - name: deploy bes software
+      become: yes
+      block:
+        - package:
+            name:
+              - "{{ downloads }}/{{ bes_rpm }}"
+              - "{{ downloads }}/{{ libdap_rpm }}"
+            state: installed
+
+        - stat:
+            path: /etc/logrotate.d/besd.logrotate
+          register: besd_logrotate
+        - stat:
+            path: /etc/logrotate.d/besd.logrotate.rpmorig
+          register: besd_logrotate_rpmorig
+        - command:
+            argv:
+              - mv
+              - -v
+              - /etc/logrotate.d/besd.logrotate
+              - /etc/logrotate.d/besd.logrotate.rpmorig
+          when: besd_logrotate.stat.exists and not besd_logrotate_rpmorig.stat.exists
+        - file:
+            path: /etc/logrotate.d/besd.logrotate
+            state: absent
+
+    - name: deploy bes instances
+      become: yes
+      block:
+        - loop: "{{ instances }}"
+          loop_control:
+            label: "/etc/logrotate.d/bes-{{ item.shortname }}"
+          copy:
+            dest: "/etc/logrotate.d/bes-{{ item.shortname }}"
+            content: |
+              /var/log/bes-{{ item.shortname }}/*log {
+                  su bes bes
+                  daily
+                  dateext
+                  rotate 8
+                  missingok
+                  notifempty
+                  sharedscripts
+                  compress
+                  delaycompress
+                  copytruncate
+              }
+
+        - loop: "{{ instances }}"
+          loop_control:
+            label: "/var/log/bes-{{ item.shortname }}"
+          file:
+            path: "/var/log/bes-{{ item.shortname }}"
+            state: directory
+            owner: bes
+            group: bes
+            mode: 0775
+
+        - loop: "{{ instances }}"
+          loop_control:
+            label: "/var/cache/bes-{{ item.shortname }}"
+          file:
+            path: "/var/cache/bes-{{ item.shortname }}"
+            state: directory
+            owner: bes
+            group: bes
+            mode: 0775
+
+        - loop: "{{ instances }}"
+          loop_control:
+            label: "/etc/bes-{{ item.shortname }}"
+          copy:
+            dest: "/etc/bes-{{ item.shortname }}"
+            src: /etc/bes/
+            remote_src: yes
+            mode: preserve
+
+        - loop: "{{ instances }}"
+          loop_control:
+            label: "/etc/bes-{{ item.shortname }}/modules/zz-instance.conf"
+          copy:
+            dest: "/etc/bes-{{ item.shortname }}/modules/zz-instance.conf"
+            content: |
+              BES.Catalog.catalog.RootDirectory={{ item.path_to_data_tree }}
+              BES.Data.RootDirectory=/dev/null
+              BES.LogName=/var/log/bes-{{ item.shortname }}/bes.log
+              BES.ServerIP=127.0.0.1
+              BES.ServerPort={{ item.bes.server_port }}
+              BES.UncompressCache.dir=/var/cache/bes-{{ item.shortname }}
+
+        - loop: "{{ instances }}"
+          loop_control:
+            label: "/etc/bes-{{ item.shortname }}/modules/zz-handler-extras.conf"
+          copy:
+            dest: "/etc/bes-{{ item.shortname }}/modules/zz-handler-extras.conf"
+            content: |
+              BES.Catalog.catalog.TypeMatch+=ff:.*\.txt(\.bz2|\.gz|\.Z)?$;
+              BES.Catalog.catalog.TypeMatch+=h5:.*\.hdf5(\.bz2|\.gz|\.Z)?$;

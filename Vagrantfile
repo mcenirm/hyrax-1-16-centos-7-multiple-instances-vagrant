@@ -7,10 +7,14 @@ Vagrant.configure("2") do |config|
   instances = [
     {
       :shortname => "demodev",
+      :path_to_data_tree => "/srv/demodev/data",
       :tomcat => {
         :shutdown_port => 8010,
         :ajp_port => 8020,
         :http_port => 8030,
+      },
+      :bes => {
+        :server_port => 10020,
       },
     },
   ]

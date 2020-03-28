@@ -1,0 +1,15 @@
+---
+opendap_pub_url: "https://www.opendap.org/pub"
+opendap_rpm_url: "{{ opendap_pub_url }}/binary/hyrax-{{ hyrax_version }}/{{ opendap_rpm_distribution_directory }}"
+
+bes_rpm: "bes-{{ bes_version }}-{{ bes_rpm_release }}.static.{{ opendap_rpm_distribution_string }}.x86_64.rpm"
+bes_rpm_url: "{{ opendap_rpm_url }}/{{ bes_rpm }}"
+
+libdap_rpm: "libdap-{{ libdap_version }}-{{ libdap_rpm_release}}.{{ opendap_rpm_distribution_string }}.x86_64.rpm"
+libdap_rpm_url: "{{ opendap_rpm_url }}/{{ libdap_rpm }}"
+
+olfs_tgz: "olfs-{{ olfs_version }}-webapp.tgz"
+olfs_tgz_url: "{{ opendap_pub_url }}/olfs/{{ olfs_tgz }}"
+
+local: "/vagrant"
+downloads: "{{ local }}/downloads"
