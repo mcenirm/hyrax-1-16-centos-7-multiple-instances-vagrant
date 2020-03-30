@@ -49,6 +49,13 @@
             path: /etc/logrotate.d/besd.logrotate
             state: absent
 
+        - copy:
+            src: "bes@.service"
+            dest: "/etc/systemd/system/"
+            owner: root
+            group: root
+            mode: 0644
+
     - name: deploy bes instances
       become: yes
       block:
@@ -121,3 +128,11 @@
             content: |
               BES.Catalog.catalog.TypeMatch+=ff:.*\.txt(\.bz2|\.gz|\.Z)?$;
               BES.Catalog.catalog.TypeMatch+=h5:.*\.hdf5(\.bz2|\.gz|\.Z)?$;
+
+        - loop: "{{ instances }}"
+          loop_control:
+            label: "bes@{{ item.shortname }}"
+          service:
+            name: "bes@{{ item.shortname }}"
+            enabled: yes
+            state: started
