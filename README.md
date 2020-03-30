@@ -9,7 +9,7 @@ Secondary goal: Demonstrate upgrade from 1.13 to 1.16
 1. SSH to the VM with `vagrant ssh`
 1. Change to the playbook directory with `cd /vagrant`
 1. Install Hyrax 1.13 with `./run_playbook.sh playbook-install-hyrax-1-13.yml`
-1. Verify with _TODO_
+1. Verify hyrax works with http://localhost:8030/opendap/csv/temperature.csv.html (change port to match Vagrantfile)
 1. Upgrade to Hyrax 1.16 with `./run_playbook.sh playbook-upgrade-to-hyrax-1-16.yml`
 1. Verify with _TODO_
 
