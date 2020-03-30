@@ -163,8 +163,6 @@
         - name: start
           set_fact:
             tomcats_to_restart: []
-        - debug:
-            msg: "{{ tomcats_to_restart|sort }}"
 
         - loop: "{{ instances }}"
           loop_control:
@@ -184,8 +182,6 @@
           when: item.changed
           set_fact:
             tomcats_to_restart: "{{ tomcats_to_restart|union([item.item.shortname]) }}"
-        - debug:
-            msg: "{{ tomcats_to_restart|sort }}"
 
         - loop: "{{ instances }}"
           loop_control:
@@ -232,8 +228,6 @@
           when: item.changed
           set_fact:
             tomcats_to_restart: "{{ tomcats_to_restart|union([item.item.shortname]) }}"
-        - debug:
-            msg: "{{ tomcats_to_restart|sort }}"
 
         - name: deploy opendap.war
           loop: "{{ instances }}"
@@ -253,8 +247,6 @@
           when: item.changed
           set_fact:
             tomcats_to_restart: "{{ tomcats_to_restart|union([item.item.shortname]) }}"
-        - debug:
-            msg: "{{ tomcats_to_restart|sort }}"
 
   handlers:
     - name: restart tomcat
