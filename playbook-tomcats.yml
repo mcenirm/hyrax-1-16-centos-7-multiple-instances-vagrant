@@ -135,3 +135,13 @@
             name: "tomcat@{{ item.shortname }}"
             enabled: yes
             state: started
+        - name: prepare data tree
+          loop: "{{ instances }}"
+          loop_control:
+            label: "{{ item.path_to_data_tree }}"
+          file:
+            path: "{{ item.path_to_data_tree }}"
+            state: directory
+            owner: root
+            group: root
+            mode: 0755
