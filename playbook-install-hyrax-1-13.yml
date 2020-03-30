@@ -56,6 +56,26 @@
             group: root
             mode: 0644
 
+    - name: prepare bes instance sample data
+      become: yes
+      block:
+        - loop: "{{ instances }}"
+          loop_control:
+            label: "{{ item.path_to_data_tree|dirname }}"
+          file:
+            path: "{{ item.path_to_data_tree|dirname }}"
+            state: directory
+            owner: root
+            group: root
+            mode: 0755
+        - loop: "{{ instances }}"
+          loop_control:
+            label: "{{ item.path_to_data_tree }}"
+          file:
+            path: "{{ item.path_to_data_tree }}"
+            state: link
+            src: /usr/share/hyrax/data
+
     - name: deploy bes instances
       become: yes
       block:
