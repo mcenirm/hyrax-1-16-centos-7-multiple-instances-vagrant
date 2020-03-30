@@ -172,7 +172,7 @@
           copy:
             dest: "/etc/sysconfig/tomcat@{{ item.shortname }}.d/hyrax-olfs.conf"
             content: |
-              OLFS_CONFIG_DIR=/var/lib/tomcats/{{ item.shortname }}/content/opendap
+              export OLFS_CONFIG_DIR=/var/lib/tomcats/{{ item.shortname }}/content/opendap
             owner: root
             group: root
             mode: 0644
