@@ -18,6 +18,7 @@
     tomcat_unpack_wars: yes
 
     olfs_content_file_list:
+      - .INIT
       # - catalog.xml
       # - idFilter.xml
       # - memberships.xml
