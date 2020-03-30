@@ -210,11 +210,12 @@
           when: not item.stat.exists
           copy:
             remote_src: yes
-            src: "{{ downloads }}/{{ olfs_tgz_name }}/opendap/WEB-INF/conf/olfs.xml"
-            dest: "{{ item.invocation.module_args.path }}"
+            src: "{{ extractions }}/{{ olfs_tgz_name }}/opendap/WEB-INF/conf/"
+            dest: "{{ item.invocation.module_args.path|dirname }}"
             owner: tomcat
             group: tomcat
-            mode: 0644
+            directory_mode: 0775
+            mode: 0664
         - name: set olfs.xml bes port
           loop: "{{ instances }}"
           loop_control:
@@ -239,7 +240,7 @@
           loop_control:
             label: "/var/lib/tomcats/{{ item.shortname }}/webapps/opendap.war"
           copy:
-            src: "{{ downloads }}/{{ olfs_tgz_name }}/opendap.war"
+            src: "{{ extractions }}/{{ olfs_tgz_name }}/opendap.war"
             dest: "/var/lib/tomcats/{{ item.shortname }}/webapps/opendap.war"
             owner: tomcat
             group: tomcat

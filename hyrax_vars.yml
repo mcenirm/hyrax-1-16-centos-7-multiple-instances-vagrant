@@ -14,3 +14,5 @@ olfs_tgz_url: "{{ opendap_pub_url }}/olfs/{{ olfs_tgz }}"
 
 local: "/vagrant"
 downloads: "{{ local }}/downloads"
+remote: "/home/vagrant"
+extractions: "{{ remote }}/extractions"

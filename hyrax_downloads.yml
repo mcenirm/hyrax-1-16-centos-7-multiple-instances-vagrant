@@ -4,6 +4,11 @@
     path: "{{ downloads }}"
     state: directory
 
+- name: extractions directory
+  file:
+    path: "{{ extractions }}"
+    state: directory
+
 - name: download hyrax files
   loop:
     - { url: "{{ bes_rpm_url }}", sha256: "{{ bes_rpm_sha256 }}" }
@@ -18,8 +23,8 @@
   unarchive:
     remote_src: yes
     src: "{{ downloads }}/{{ olfs_tgz }}"
-    dest: "{{ downloads }}"
-    creates: "{{ downloads }}/{{ olfs_tgz_name }}/opendap.war"
+    dest: "{{ extractions }}"
+    creates: "{{ extractions }}/{{ olfs_tgz_name }}/opendap.war"
 
 - name: extract olfs.xml
   block:
@@ -28,10 +33,10 @@
         name: unzip
         state: installed
     - file:
-        dest: "{{ downloads }}/{{ olfs_tgz_name }}/opendap"
+        dest: "{{ extractions }}/{{ olfs_tgz_name }}/opendap"
         state: directory
     - unarchive:
         remote_src: yes
-        src: "{{ downloads }}/{{ olfs_tgz_name }}/opendap.war"
-        dest: "{{ downloads }}/{{ olfs_tgz_name }}/opendap"
-        creates: "{{ downloads }}/{{ olfs_tgz_name }}/opendap/WEB-INF/conf/olfs.xml"
+        src: "{{ extractions }}/{{ olfs_tgz_name }}/opendap.war"
+        dest: "{{ extractions }}/{{ olfs_tgz_name }}/opendap"
+        creates: "{{ extractions }}/{{ olfs_tgz_name }}/opendap/WEB-INF/conf/olfs.xml"
