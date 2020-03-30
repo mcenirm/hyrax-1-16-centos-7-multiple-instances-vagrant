@@ -156,3 +156,109 @@
             name: "bes@{{ item.shortname }}"
             enabled: yes
             state: started
+
+    - name: deploy olfs
+      become: yes
+      block:
+        - name: start
+          set_fact:
+            tomcats_to_restart: []
+        - debug:
+            msg: "{{ tomcats_to_restart|sort }}"
+
+        - loop: "{{ instances }}"
+          loop_control:
+            label: "/etc/sysconfig/tomcat@{{ item.shortname }}.d/hyrax-olfs.conf"
+          copy:
+            dest: "/etc/sysconfig/tomcat@{{ item.shortname }}.d/hyrax-olfs.conf"
+            content: |
+              OLFS_CONFIG_DIR=/var/lib/tomcats/{{ item.shortname }}/content/opendap
+            owner: root
+            group: root
+            mode: 0644
+          register: sysconfig_olfs
+          notify: restart tomcat
+        - loop: "{{ sysconfig_olfs.results }}"
+          loop_control:
+            label: "check restart tomcat@{{ item.item.shortname }}"
+          when: item.changed
+          set_fact:
+            tomcats_to_restart: "{{ tomcats_to_restart|union([item.item.shortname]) }}"
+        - debug:
+            msg: "{{ tomcats_to_restart|sort }}"
+
+        - loop: "{{ instances }}"
+          loop_control:
+            label: "/var/lib/tomcats/{{ item.shortname }}/content/opendap"
+          file:
+            path: "/var/lib/tomcats/{{ item.shortname }}/content/opendap"
+            state: directory
+            owner: tomcat
+            group: tomcat
+            mode: 02775
+
+        - name: stat olfs.xml
+          loop: "{{ instances }}"
+          loop_control:
+            label: "/var/lib/tomcats/{{ item.shortname }}/content/opendap/olfs.xml"
+          stat:
+            path: "/var/lib/tomcats/{{ item.shortname }}/content/opendap/olfs.xml"
+          register: olfs_xml
+        - loop: "{{ olfs_xml.results }}"
+          loop_control:
+            label: "{{ item.invocation.module_args.path }}"
+          when: not item.stat.exists
+          copy:
+            remote_src: yes
+            src: "{{ downloads }}/{{ olfs_tgz_name }}/opendap/WEB-INF/conf/olfs.xml"
+            dest: "{{ item.invocation.module_args.path }}"
+            owner: tomcat
+            group: tomcat
+            mode: 0644
+        - name: set olfs.xml bes port
+          loop: "{{ instances }}"
+          loop_control:
+            label: "/var/lib/tomcats/{{ item.shortname }}/content/opendap/olfs.xml"
+          xml:
+            path: "/var/lib/tomcats/{{ item.shortname }}/content/opendap/olfs.xml"
+            xpath: /OLFSConfig/BESManager/BES/port
+            value: "{{ item.bes.server_port|int }}"
+          register: olfs_xml_bes_port
+          notify: restart tomcat
+        - loop: "{{ olfs_xml_bes_port.results }}"
+          loop_control:
+            label: "check restart tomcat@{{ item.item.shortname }}"
+          when: item.changed
+          set_fact:
+            tomcats_to_restart: "{{ tomcats_to_restart|union([item.item.shortname]) }}"
+        - debug:
+            msg: "{{ tomcats_to_restart|sort }}"
+
+        - name: deploy opendap.war
+          loop: "{{ instances }}"
+          loop_control:
+            label: "/var/lib/tomcats/{{ item.shortname }}/webapps/opendap.war"
+          copy:
+            src: "{{ downloads }}/{{ olfs_tgz_name }}/opendap.war"
+            dest: "/var/lib/tomcats/{{ item.shortname }}/webapps/opendap.war"
+            owner: tomcat
+            group: tomcat
+            mode: 0644
+          register: opendap_war
+          notify: restart tomcat
+        - loop: "{{ opendap_war.results }}"
+          loop_control:
+            label: "check restart tomcat@{{ item.item.shortname }}"
+          when: item.changed
+          set_fact:
+            tomcats_to_restart: "{{ tomcats_to_restart|union([item.item.shortname]) }}"
+        - debug:
+            msg: "{{ tomcats_to_restart|sort }}"
+
+  handlers:
+    - name: restart tomcat
+      become: yes
+      loop: "{{ tomcats_to_restart|sort }}"
+      service:
+        name: "tomcat@{{ item }}"
+        state: restarted
