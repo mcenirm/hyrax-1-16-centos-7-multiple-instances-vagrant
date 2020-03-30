@@ -15,6 +15,16 @@
     libdap_rpm_sha256: "b77e7c9e86e7f4ead194b3d6356f1b4b2019d3fd8dfd4be702d6f84953d705ab"
     olfs_tgz_sha256: "9e17f21b4053b451ea9805c3835d733d83c1833b8f55beec598b7817075ff402"
 
+    olfs_content_file_list:
+      # - catalog.xml
+      # - idFilter.xml
+      # - memberships.xml
+      - olfs.xml
+      # - PEPFilter.xml
+      # - viewers.xml
+      # - wcs.xml
+      # - webstart.xml
+
   vars_files:
     - hyrax_vars.yml
     - instances_vars.yml
@@ -160,7 +170,7 @@
     - name: deploy olfs
       become: yes
       block:
-        - name: start
+        - name: start deploy olfs
           set_fact:
             tomcats_to_restart: []
 
@@ -193,25 +203,32 @@
             group: tomcat
             mode: 02775
 
-        - name: stat olfs.xml
-          loop: "{{ instances }}"
+        - name: stat olfs content
+          loop: "{{ instances|product(olfs_content_file_list)|list }}"
           loop_control:
-            label: "/var/lib/tomcats/{{ item.shortname }}/content/opendap/olfs.xml"
+            label: "/var/lib/tomcats/{{ item.0.shortname }}/content/opendap/{{ item.1 }}"
           stat:
-            path: "/var/lib/tomcats/{{ item.shortname }}/content/opendap/olfs.xml"
-          register: olfs_xml
-        - loop: "{{ olfs_xml.results }}"
+            path: "/var/lib/tomcats/{{ item.0.shortname }}/content/opendap/{{ item.1 }}"
+          register: olfs_content
+        - loop: "{{ olfs_content.results }}"
           loop_control:
             label: "{{ item.invocation.module_args.path }}"
           when: not item.stat.exists
           copy:
             remote_src: yes
-            src: "{{ extractions }}/{{ olfs_tgz_name }}/opendap/WEB-INF/conf/"
-            dest: "{{ item.invocation.module_args.path|dirname }}"
+            src: "{{ extractions }}/{{ olfs_tgz_name }}/opendap/WEB-INF/conf/{{ item.item.1 }}"
+            dest: "{{ item.invocation.module_args.path }}"
             owner: tomcat
             group: tomcat
-            directory_mode: 0775
             mode: 0664
+          register: copy_olfs_content
+        - loop: "{{ copy_olfs_content.results }}"
+          loop_control:
+            label: "check restart tomcat@{{ item.item.item.0.shortname }}"
+          when: item.changed
+          set_fact:
+            tomcats_to_restart: "{{ tomcats_to_restart|union([item.item.item.0.shortname]) }}"
+
         - name: set olfs.xml bes port
           loop: "{{ instances }}"
           loop_control:
