@@ -13,3 +13,25 @@
     url: "{{ item.url }}"
     dest: "{{ downloads }}/"
     checksum: "sha256:{{ item.sha256 }}"
+
+- name: extract opendap.war
+  unarchive:
+    remote_src: yes
+    src: "{{ downloads }}/{{ olfs_tgz }}"
+    dest: "{{ downloads }}"
+    creates: "{{ downloads }}/{{ olfs_tgz_name }}/opendap.war"
+
+- name: extract olfs.xml
+  block:
+    - become: yes
+      package:
+        name: unzip
+        state: installed
+    - file:
+        dest: "{{ downloads }}/{{ olfs_tgz_name }}/opendap"
+        state: directory
+    - unarchive:
+        remote_src: yes
+        src: "{{ downloads }}/{{ olfs_tgz_name }}/opendap.war"
+        dest: "{{ downloads }}/{{ olfs_tgz_name }}/opendap"
+        creates: "{{ downloads }}/{{ olfs_tgz_name }}/opendap/WEB-INF/conf/olfs.xml"

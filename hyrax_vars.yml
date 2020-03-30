@@ -8,7 +8,8 @@ bes_rpm_url: "{{ opendap_rpm_url }}/{{ bes_rpm }}"
 libdap_rpm: "libdap-{{ libdap_version }}-{{ libdap_rpm_release}}.{{ opendap_rpm_distribution_string }}.x86_64.rpm"
 libdap_rpm_url: "{{ opendap_rpm_url }}/{{ libdap_rpm }}"
 
-olfs_tgz: "olfs-{{ olfs_version }}-webapp.tgz"
+olfs_tgz_name: "olfs-{{ olfs_version }}-webapp"
+olfs_tgz: "{{ olfs_tgz_name }}.tgz"
 olfs_tgz_url: "{{ opendap_pub_url }}/olfs/{{ olfs_tgz }}"
 
 local: "/vagrant"
