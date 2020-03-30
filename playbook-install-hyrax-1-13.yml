@@ -15,6 +15,8 @@
     libdap_rpm_sha256: "b77e7c9e86e7f4ead194b3d6356f1b4b2019d3fd8dfd4be702d6f84953d705ab"
     olfs_tgz_sha256: "9e17f21b4053b451ea9805c3835d733d83c1833b8f55beec598b7817075ff402"
 
+    tomcat_unpack_wars: yes
+
     olfs_content_file_list:
       # - catalog.xml
       # - idFilter.xml
@@ -173,6 +175,24 @@
         - name: start deploy olfs
           set_fact:
             tomcats_to_restart: []
+
+        - name: set unpackWARs to true
+          loop: "{{ instances }}"
+          loop_control:
+            label: "/var/lib/tomcats/{{ item.shortname }}/conf/server.xml"
+          xml:
+            path: "/var/lib/tomcats/{{ item.shortname }}/conf/server.xml"
+            xpath: /Server/Service[@name="Catalina"]/Engine[@name="Catalina"]/Host[@name="localhost"]
+            attribute: unpackWARs
+            value: "{{ 'true' if tomcat_unpack_wars else 'false' }}"
+          register: server_xml_unpack_wars
+          notify: restart tomcat
+        - loop: "{{ server_xml_unpack_wars.results }}"
+          loop_control:
+            label: "check restart tomcat@{{ item.item.shortname }}"
+          when: item.changed
+          set_fact:
+            tomcats_to_restart: "{{ tomcats_to_restart|union([item.item.shortname]) }}"
 
         - loop: "{{ instances }}"
           loop_control:
