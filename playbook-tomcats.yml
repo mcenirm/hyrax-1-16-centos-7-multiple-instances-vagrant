@@ -55,6 +55,8 @@
       block:
         - name: allow tomcat to listen to ports
           loop: "{{ instances }}"
+          loop_control:
+            label: "{{ item.shortname }}: {{ item.tomcat.shutdown_port }}, {{ item.tomcat.ajp_port }}, {{ item.tomcat.http_port }}"
           seport:
             ports:
               - "{{ item.tomcat.shutdown_port }}"
@@ -65,6 +67,8 @@
             state: present
         - name: sysconfig parts directory
           loop: "{{ instances }}"
+          loop_control:
+            label: "/etc/sysconfig/tomcat@{{ item.shortname }}.d"
           file:
             path: "/etc/sysconfig/tomcat@{{ item.shortname }}.d"
             state: directory
@@ -73,6 +77,8 @@
             mode: 0755
         - name: sysconfig bootstrap
           loop: "{{ instances }}"
+          loop_control:
+            label: "/etc/sysconfig/tomcat@{{ item.shortname }}"
           copy:
             dest: "/etc/sysconfig/tomcat@{{ item.shortname }}"
             content: |
@@ -82,6 +88,8 @@
             mode: 0644
         - name: sysconfig defaults
           loop: "{{ instances }}"
+          loop_control:
+            label: "/etc/sysconfig/tomcat@{{ item.shortname }}.d/00-defaults.conf"
           copy:
             dest: "/etc/sysconfig/tomcat@{{ item.shortname }}.d/00-defaults.conf"
             content: |
@@ -90,6 +98,8 @@
               CATALINA_TMPDIR=/var/lib/tomcats/{{ item.shortname }}/temp
         - name: catalina.base structure
           loop: "{{ instances|product(tomcat_directory_list)|list }}"
+          loop_control:
+            label: "/var/lib/tomcats/{{ item.0.shortname }}/{{ item.1 }}"
           file:
             path: "/var/lib/tomcats/{{ item.0.shortname }}/{{ item.1 }}"
             state: directory
@@ -98,6 +108,8 @@
             mode: 02775
         - name: server.xml
           loop: "{{ instances }}"
+          loop_control:
+            label: "/var/lib/tomcats/{{ item.shortname }}/conf/server.xml"
           template:
             dest: "/var/lib/tomcats/{{ item.shortname }}/conf/server.xml"
             src: "server.xml.j2"
@@ -106,6 +118,8 @@
             mode: 0644
         - name: other conf files
           loop: "{{ instances|product(tomcat_conf_file_list)|list }}"
+          loop_control:
+            label: "/var/lib/tomcats/{{ item.0.shortname }}/conf/{{ item.1 }}"
           copy:
             remote_src: yes
             src: "/etc/tomcat/{{ item.1 }}"
@@ -115,6 +129,8 @@
             mode: 0644
         - name: enable and start tomcat instance
           loop: "{{ instances }}"
+          loop_control:
+            label: "tomcat@{{ item.shortname }}"
           service:
             name: "tomcat@{{ item.shortname }}"
             enabled: yes
