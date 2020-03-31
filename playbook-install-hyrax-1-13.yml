@@ -177,7 +177,7 @@
           set_fact:
             tomcats_to_restart: []
 
-        - name: set unpackWARs to true
+        - name: set unpackWARs
           loop: "{{ instances }}"
           loop_control:
             label: "/var/lib/tomcats/{{ item.shortname }}/conf/server.xml"
