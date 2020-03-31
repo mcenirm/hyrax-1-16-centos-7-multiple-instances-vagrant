@@ -15,8 +15,102 @@
     libdap_rpm_sha256: "0f3b19468d442d84a6810dddeed1ce5c407d7a65d2556007b5db18ed0ed91e95"
     olfs_tgz_sha256: "b48235c4890235dba25940b1d433b6a732ab6f73fbd66b7886dc09c63b839a41"
 
+    old_hyrax_version: "1.13"
+    from_old_hyrax: "from-hyrax-{{ old_hyrax_version|replace('.','-') }}"
+    tomcat_unpack_wars: no
+
   vars_files:
     - hyrax_vars.yml
+    - instances_vars.yml
 
   tasks:
-    - include: hyrax_downloads.yml
+    - become: no
+      include: hyrax_downloads.yml
+
+    - name: shutdown old version
+      become: yes
+      block:
+        - name: undeploy opendap
+          loop: "{{ instances }}"
+          loop_control:
+            label: "/var/lib/tomcats/{{ item.shortname }}/webapps/opendap.war"
+          file:
+            path: "/var/lib/tomcats/{{ item.shortname }}/webapps/opendap.war"
+            state: absent
+        - name: wait for undeploy of opendap
+          loop: "{{ instances }}"
+          loop_control:
+            label: "/var/lib/tomcats/{{ item.shortname }}/webapps/opendap"
+          wait_for:
+            path: "/var/lib/tomcats/{{ item.shortname }}/webapps/opendap"
+            state: absent
+        - name: stop and disable service
+          loop: "{{ instances|product(['tomcat','bes'])|list }}"
+          loop_control:
+            label: "{{ item.1 }}@{{ item.0.shortname }}"
+          service:
+            name: "{{ item.1 }}@{{ item.0.shortname }}"
+            enabled: no
+            state: stopped
+
+    - name: cleanup old bes
+      become: yes
+      block:
+        - name: cleanup old logrotate
+          file:
+            path: /etc/logrotate.d/besd.logrotate.rpmorig
+            state: absent
+        - name: stat old bes directory
+          loop: "{{ instances|product(['/etc','/var/cache','/var/log'])|list }}"
+          loop_control:
+            label: "{{ item.1 }}/bes-{{ item.0.shortname }}"
+          stat:
+            path: "{{ item.1 }}/bes-{{ item.0.shortname }}"
+          register: stat_old_bes_dir
+        - name: stat old bes directory saved
+          loop: "{{ instances|product(['/etc','/var/cache','/var/log'])|list }}"
+          loop_control:
+            label: "{{ item.1 }}/bes-{{ item.0.shortname }}.{{ from_old_hyrax }}"
+          stat:
+            path: "{{ item.1 }}/bes-{{ item.0.shortname }}.{{ from_old_hyrax }}"
+          register: stat_old_bes_dir_saved
+        - name: save old bes directory
+          loop: "{{ stat_old_bes_dir.results|zip(stat_old_bes_dir_saved.results)|list }}"
+          loop_control:
+            label: "{{ item.1.invocation.module_args.path }}"
+          when: item.0.stat.exists and not item.1.stat.exists
+          command:
+            argv:
+              - mv
+              - --
+              - "{{ item.0.invocation.module_args.path }}"
+              - "{{ item.1.invocation.module_args.path }}"
+
+    - name: cleanup old olfs
+      become: yes
+      block:
+        - name: stat old olfs directory
+          loop: "{{ instances }}"
+          loop_control:
+            label: "/var/lib/tomcats/{{ item.shortname }}/content/opendap"
+          stat:
+            path: "/var/lib/tomcats/{{ item.shortname }}/content/opendap"
+          register: stat_old_olfs_content_dir
+        - name: stat old olfs directory saved
+          loop: "{{ instances }}"
+          loop_control:
+            label: "/var/lib/tomcats/{{ item.shortname }}/content/opendap.{{ from_old_hyrax }}"
+          stat:
+            path: "/var/lib/tomcats/{{ item.shortname }}/content/opendap.{{ from_old_hyrax }}"
+          register: stat_old_olfs_content_dir_saved
+        - name: save old olfs directories
+          loop: "{{ stat_old_olfs_content_dir.results|zip(stat_old_olfs_content_dir_saved.results)|list }}"
+          loop_control:
+            label: "{{ item.1.invocation.module_args.path }}"
+          when: item.0.stat.exists and not item.1.stat.exists
+          command:
+            argv:
+              - mv
+              - --
+              - "{{ item.0.invocation.module_args.path }}"
+              - "{{ item.1.invocation.module_args.path }}"
