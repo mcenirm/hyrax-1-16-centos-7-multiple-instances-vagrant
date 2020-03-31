@@ -114,3 +114,87 @@
               - --
               - "{{ item.0.invocation.module_args.path }}"
               - "{{ item.1.invocation.module_args.path }}"
+
+    - name: upgrade bes
+      become: yes
+      block:
+        - name: upgrade package
+          package:
+            name:
+              - "{{ downloads }}/{{ bes_rpm }}"
+              - "{{ downloads }}/{{ libdap_rpm }}"
+            state: latest
+
+    - name: deploy bes instances
+      become: yes
+      block:
+        - loop: "{{ instances }}"
+          loop_control:
+            label: "/etc/logrotate.d/bes-{{ item.shortname }}"
+          copy:
+            dest: "/etc/logrotate.d/bes-{{ item.shortname }}"
+            content: |
+              /var/log/bes-{{ item.shortname }}/*log {
+                  su bes bes
+                  daily
+                  dateext
+                  rotate 8
+                  missingok
+                  notifempty
+                  sharedscripts
+                  compress
+                  delaycompress
+                  copytruncate
+              }
+
+        - loop: "{{ instances }}"
+          loop_control:
+            label: "/var/log/bes-{{ item.shortname }}"
+          file:
+            path: "/var/log/bes-{{ item.shortname }}"
+            state: directory
+            owner: bes
+            group: bes
+            mode: 0775
+
+        - loop: "{{ instances }}"
+          loop_control:
+            label: "/var/cache/bes-{{ item.shortname }}"
+          file:
+            path: "/var/cache/bes-{{ item.shortname }}"
+            state: directory
+            owner: bes
+            group: bes
+            mode: 0775
+
+        - loop: "{{ instances }}"
+          loop_control:
+            label: "/etc/bes-{{ item.shortname }}"
+          copy:
+            dest: "/etc/bes-{{ item.shortname }}"
+            src: /etc/bes/
+            remote_src: yes
+            mode: preserve
+
+        - loop: "{{ instances }}"
+          loop_control:
+            label: "/etc/bes-{{ item.shortname }}/site.conf"
+          copy:
+            dest: "/etc/bes-{{ item.shortname }}/site.conf"
+            content: |
+              BES.Catalog.catalog.RootDirectory={{ item.path_to_data_tree }}
+              BES.Catalog.catalog.TypeMatch+=ff:.*\.txt(\.bz2|\.gz|\.Z)?$;
+              BES.Catalog.catalog.TypeMatch+=h5:.*\.hdf5(\.bz2|\.gz|\.Z)?$;
+              BES.Data.RootDirectory=/dev/null
+              BES.LogName=/var/log/bes-{{ item.shortname }}/bes.log
+              BES.ServerIP=127.0.0.1
+              BES.ServerPort={{ item.bes.server_port }}
+              BES.UncompressCache.dir=/var/cache/bes-{{ item.shortname }}/hyrax_ux
+
+        - loop: "{{ instances }}"
+          loop_control:
+            label: "bes@{{ item.shortname }}"
+          service:
+            name: "bes@{{ item.shortname }}"
+            enabled: yes
+            state: started
